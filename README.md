@@ -119,13 +119,21 @@ After reviewing the preview and taking an ERPNext site backup:
 bench --site mastercellar.kodetrek.com backup --with-files
 bench --site mastercellar.kodetrek.com execute \
   mastercellar.woo_import.import_store_api \
-  --kwargs '{"max_items":36,"include_images":true}'
+  --kwargs '{"max_items":36,"include_images":True}'
 ```
 
-If your Bench CLI requires native Python-style booleans in JSON kwargs, use
-`true` for JSON, not `True`. The import is opt-in, uses a fixed source
-hostname, limits redirects and image sizes, and only creates new `TMC-WC-*`
-items. It never overwrites existing ERPNext items or selling prices.
+The `--kwargs` option in this Frappe v16 installation evaluates a Python
+dictionary, not JSON. Use `True`, `False` and `None`, not JSON's lowercase
+`true`, `false` and `null`. Do not quote a boolean as a string. A
+`NameError: name 'true' is not defined` occurs while parsing arguments,
+before the importer runs; retry with `True`, without reinstalling the app
+or restoring the database. Only use trusted Python expressions in this option.
+See the official reference:
+https://docs.frappe.io/framework/user/en/bench/reference/execute
+
+The import is opt-in, uses a fixed source hostname, limits redirects and
+image sizes, and only creates new `TMC-WC-*` items. It never overwrites
+existing ERPNext items or selling prices.
 
 ### Option B — WooCommerce product CSV export (when API blocked)
 
@@ -154,7 +162,7 @@ Then, only after reviewing the result:
 ```bash
 bench --site mastercellar.kodetrek.com execute \
   mastercellar.woo_import.import_csv \
-  --kwargs '{"file_name":"woo-products.csv","max_items":36,"include_images":true}'
+  --kwargs '{"file_name":"woo-products.csv","max_items":36,"include_images":True}'
 ```
 
 Do not export/import actual customer or transaction data for the demo.
