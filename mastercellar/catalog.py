@@ -103,7 +103,7 @@ def get_demo_product(item_code):
     items = frappe.get_all(
         "Item",
         filters={"item_code": item_code, "disabled": 0, "is_sales_item": 1},
-        fields=["item_code", "item_name", "item_group", "image"],
+        fields=["item_code", "item_name", "item_group", "image", "description"],
         limit_page_length=1,
     )
     products = _decorate(items)
