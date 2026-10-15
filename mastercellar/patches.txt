@@ -1,0 +1,2 @@
+# No database patches yet.
+# Required by Frappe app discovery during asset builds.
