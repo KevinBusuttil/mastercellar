@@ -57,15 +57,34 @@ def _allowed_source_host(url):
     )
 
 
-def _get_products(max_items):
+def _get_products(max_items, category=None, search=None):
+    """Fetch distinct public products with a fixed page size throughout the request.
+
+    Changing per_page between pages shifts WooCommerce's offset and repeats or
+    skips products. Optional source-side filters help select a representative
+    demo catalogue rather than only the most recently listed products.
+    """
     size = min(max(int(max_items), 1), MAX_PRODUCTS)
+    page_size = min(size, 24)
+    filters = {}
+    if category is not None:
+        category = str(category).strip()
+        if not re.fullmatch(r"[A-Za-z0-9,_-]{1,160}", category):
+            raise ValueError("category must contain WooCommerce category IDs or slugs")
+        filters["category"] = category
+    if search is not None:
+        if not isinstance(search, str) or len(search) > 80:
+            raise ValueError("search must be a string of at most 80 characters")
+        if search.strip():
+            filters["search"] = search.strip()
     result = []
+    seen = set()
     with requests.Session() as session:
         session.headers.update({"User-Agent": UA, "Accept": "application/json"})
         page = 1
         while len(result) < size:
             request_url = API
-            params = {"per_page": min(size - len(result), 24), "page": page, "type": "simple"}
+            params = {"per_page": page_size, "page": page, "type": "simple", **filters}
             for hop in range(3):
                 resp = session.get(
                     request_url, params=params, timeout=REQUEST_TIMEOUT, allow_redirects=False,
@@ -90,12 +109,23 @@ def _get_products(max_items):
             if not body:
                 break
             for product in body:
-                if product.get("type") == "simple" and isinstance(product.get("id"), int):
+                if not isinstance(product, dict):
+                    continue
+                product_id = product.get("id")
+                if (
+                    product.get("type") == "simple"
+                    and type(product_id) is int
+                    and product_id > 0
+                    and product_id not in seen
+                ):
+                    seen.add(product_id)
                     result.append(product)
                     if len(result) == size:
                         break
+            if len(result) >= size or len(body) < page_size:
+                break
             page += 1
-            if page > 6 or len(body) < min(size - len(result), 24):
+            if page > 6:
                 break
             sleep(0.4)
     return result
@@ -161,9 +191,9 @@ def _summary(p):
     }
 
 
-def preview_store_api(max_items=24):
-    """Read-only inspection; does not change ERPNext data."""
-    products = _get_products(max_items)
+def preview_store_api(max_items=24, category=None, search=None):
+    """Read-only preview, optionally selecting source category IDs/slugs or text."""
+    products = _get_products(max_items, category=category, search=search)
     return {
         "source": SOURCE,
         "fetched": len(products),
@@ -230,10 +260,10 @@ def _get_image_bytes(url):
     return bytes(payload), ext
 
 
-def import_store_api(max_items=24, include_images=True):
-    """Import new demonstration Items from the public WooCommerce Store API."""
+def import_store_api(max_items=24, include_images=True, category=None, search=None):
+    """Import new demonstration Items, optionally filtering the source catalogue."""
     _ensure_demo_site()
-    products = _get_products(max_items)  # network preflight before any writes
+    products = _get_products(max_items, category=category, search=search)
     return _import_products(products, include_images=include_images, source="Store API")
 
 
