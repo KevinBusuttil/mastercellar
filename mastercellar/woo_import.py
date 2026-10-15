@@ -321,7 +321,7 @@ def _read_woocommerce_csv(file_name, max_items=MAX_PRODUCTS):
     Only a simple basename is accepted. This is useful when the public Store API
     is disabled. No customer or transaction exports are imported.
     """
-    if not re.fullmatch(r"[A-Za-z0-9._-]+\\.csv", file_name or ""):
+    if not re.fullmatch(r"[A-Za-z0-9._-]+\.csv", file_name or ""):
         raise ValueError("Supply a CSV basename such as woo-products.csv, not a path")
     path = Path(frappe.get_site_path("private", "files", file_name))
     if not path.is_file():
