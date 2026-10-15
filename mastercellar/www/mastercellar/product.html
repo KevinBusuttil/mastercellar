@@ -1,0 +1,15 @@
+{% extends "templates/web.html" %}
+{% block page_content %}
+<link rel="stylesheet" href="/assets/mastercellar/css/storefront.css">
+<div class="mc-root">
+  <div class="mc-alert">ERPNext-powered product demo · Online purchase not yet enabled</div>
+  <header class="mc-nav"><a href="/mastercellar" class="mc-brand"><span class="mc-brand-mark">MC</span><span>THE MASTER CELLAR<small>FINE WINES &amp; SPIRITS · MALTA</small></span></a><nav><a href="/mastercellar">Home</a><a href="/mastercellar/catalogue">The collection</a></nav></header>
+  <div class="mc-section"><a class="mc-back" href="/mastercellar/catalogue">← Back to the collection</a>
+    <section class="mc-detail">
+      <div class="mc-detail-photo">{% if product.image %}<img src="{{ product.image }}" alt="{{ product.item_name }}">{% else %}<span class="mc-product-placeholder">THE MASTER<br>CELLAR</span>{% endif %}</div>
+      <div class="mc-detail-copy"><p class="mc-kicker">{{ product.item_group }}</p><h1>{{ product.item_name }}</h1><p class="mc-sku">ERPNext item: {{ product.item_code }}</p><p class="mc-detail-price">{{ product.price_text or 'Price on request' }}</p><p class="mc-info">The price and item details on this page are read from the ERPNext demo catalogue. Actual tax, availability, promotional pricing and customer-specific agreements will be implemented in the transactional phase.</p><div class="mc-soon"><strong>Coming next:</strong> Live availability, cart, checkout, age verification and pickup / delivery options.</div><a class="mc-outline-button" href="/mastercellar/catalogue">Continue browsing →</a></div>
+    </section>
+  </div>
+  <footer class="mc-footer"><span>THE MASTER CELLAR · MALTA</span><span>Demonstration product · Online orders not available yet</span></footer>
+</div>
+{% endblock %}
