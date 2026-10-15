@@ -1,0 +1,46 @@
+{% extends "templates/web.html" %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block head_include %}
+{{ super() }}
+<meta name="robots" content="noindex,nofollow,noarchive">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500&family=Nunito+Sans:wght@400;600;700&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/mastercellar/css/reference.css?v=20261015-r1">
+{% endblock %}
+{% block content %}
+<div class="tmc-reference" id="tmc-reference">
+  <a href="#tmc-main" class="tmc-skip">Skip to content</a>
+  <header class="tmc-header">
+    <nav class="tmc-top-links" aria-label="Collections">
+      <a data-view="catalogue" data-category="Maltese Wines">Wines</a>
+      <a data-view="catalogue" data-category="Spirits">Spirits</a>
+      <a data-view="catalogue" data-category="Gourmet Items">Gourmet Items</a>
+      <a data-view="catalogue" data-category="Events">Events</a>
+    </nav>
+    <a class="tmc-logo" data-view="home" aria-label="The Master Cellar home"><img data-brand="logo" alt="The Master Cellar"></a>
+    <a class="tmc-hamper-link" data-view="hamper">Create your own hamper</a>
+    <nav class="tmc-tools" aria-label="Store tools">
+      <a data-view="cart" aria-label="Demo basket" class="tmc-cart-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 3h3l3 13h12l3-10H5M9 21h.01M18 21h.01"/></svg><span id="tmc-basket-count">0</span></a>
+      <button type="button" id="tmc-open-search" aria-label="Search products"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg></button>
+      <a href="/login" aria-label="ERPNext demo sign in"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M5 21v-3c0-6 14-6 14 0v3z"/></svg></a>
+      <button type="button" id="tmc-open-menu" aria-label="Open full menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg></button>
+    </nav>
+    <span class="tmc-demo-label" title="Private visual demonstration; checkout is disabled">DEMO</span>
+  </header>
+  <main id="tmc-main" tabindex="-1"><p class="tmc-loading">Loading the ERPNext reference catalogue…</p></main>
+  <footer class="tmc-footer">
+    <img class="tmc-crest" data-brand="crest" alt="The Master Cellar">
+    <nav aria-label="Footer"><a data-view="home">Home</a><a data-view="info" data-section="about">About us</a><a data-view="info" data-section="contact">Contact us</a><a data-view="info" data-section="privacy">Privacy policy</a><a data-view="info" data-section="delivery">Delivery policy</a><a data-view="info" data-section="terms">Terms and conditions</a></nav>
+    <p class="tmc-disclaimer">ERPNext visual demonstration · Reference captured 15 October 2026<br>No real orders, payments, subscriptions or ticket bookings are submitted.</p>
+    <img class="tmc-payment-icons" data-brand="payments" alt="Payment icons shown for visual reference only">
+  </footer>
+  <dialog id="tmc-menu" class="tmc-overlay"><button class="tmc-dialog-close" data-close aria-label="Close menu">×</button><img class="tmc-menu-logo" data-brand="crest" alt="The Master Cellar"><div class="tmc-menu-grid"><nav id="tmc-menu-categories" aria-label="All collections"></nav><nav aria-label="Information"><a data-view="home">Home</a><a data-view="info" data-section="about">About us</a><a data-view="info" data-section="contact">Contact us</a><a data-view="info" data-section="club">The Master Cellar Club</a><a data-view="hamper">Create your own hamper</a><a data-view="cart">Preview basket</a></nav></div></dialog>
+  <dialog id="tmc-search-dialog" class="tmc-search-dialog"><button class="tmc-dialog-close" data-close aria-label="Close search">×</button><h2>What are you looking for?</h2><form method="get"><input type="hidden" name="view" value="catalogue"><label for="tmc-search-input">Search the demonstration collection</label><div class="tmc-search-row"><input id="tmc-search-input" type="search" name="q" placeholder="Search wines, spirits and gifts…" aria-label="Search products" maxlength="80"><button class="tmc-button" type="submit">Search</button></div></form></dialog>
+  <div id="tmc-toast" class="tmc-toast" role="status" aria-live="polite" hidden></div>
+  <noscript><p>Enable JavaScript to use this interactive demonstration. No orders or payments can be submitted.</p></noscript>
+</div>
+<script type="application/json" id="tmc-reference-data">{{ reference_json | safe }}</script>
+<script src="/assets/mastercellar/js/reference.js?v=20261015-r1" defer></script>
+{% endblock %}
