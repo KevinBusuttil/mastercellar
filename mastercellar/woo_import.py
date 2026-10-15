@@ -6,10 +6,13 @@ pre-existing ERPNext Item or Item Price, and never creates a Sales Order.
 """
 
 from decimal import Decimal, InvalidOperation
+import csv
+import re
+from pathlib import Path
 from html import unescape
 from io import BytesIO
 from time import sleep
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 import frappe
 import requests
@@ -61,12 +64,19 @@ def _get_products(max_items):
         session.headers.update({"User-Agent": UA, "Accept": "application/json"})
         page = 1
         while len(result) < size:
-            resp = session.get(
-                API,
-                params={"per_page": min(size - len(result), 24), "page": page, "type": "simple"},
-                timeout=REQUEST_TIMEOUT,
-                allow_redirects=False,
-            )
+            request_url = API
+            params = {"per_page": min(size - len(result), 24), "page": page, "type": "simple"}
+            for hop in range(3):
+                resp = session.get(
+                    request_url, params=params, timeout=REQUEST_TIMEOUT, allow_redirects=False,
+                )
+                if resp.status_code not in (301, 302, 307, 308):
+                    break
+                redirected = urljoin(request_url, resp.headers.get("Location", ""))
+                if not _allowed_source_host(redirected) or hop == 2:
+                    raise RuntimeError("Woo Store API redirect left the approved domain or exceeded limit")
+                request_url = redirected
+                params = None
             if resp.status_code != 200:
                 raise RuntimeError(
                     f"Woo Store API HTTP {resp.status_code}; "
@@ -189,10 +199,20 @@ def _get_image_bytes(url):
     """Fetch at most 4MB of published media; never follow URL redirects."""
     if not _allowed_source_host(url):
         raise ValueError("Image is not on the approved Master Cellar host")
-    with requests.get(
-        url, headers={"User-Agent": UA}, timeout=REQUEST_TIMEOUT,
-        stream=True, allow_redirects=False
-    ) as response:
+    current_url = url
+    for hop in range(3):
+        response = requests.get(
+            current_url, headers={"User-Agent": UA}, timeout=REQUEST_TIMEOUT,
+            stream=True, allow_redirects=False
+        )
+        if response.status_code not in (301, 302, 307, 308):
+            break
+        redirected = urljoin(current_url, response.headers.get("Location", ""))
+        response.close()
+        if not _allowed_source_host(redirected) or hop == 2:
+            raise ValueError("Image redirect outside allowed source or too many hops")
+        current_url = redirected
+    with response:
         response.raise_for_status()
         kind = response.headers.get("content-type", "").split(";")[0].lower()
         if kind not in ("image/jpeg", "image/png", "image/webp"):
@@ -211,16 +231,19 @@ def _get_image_bytes(url):
 
 
 def import_store_api(max_items=24, include_images=True):
-    """Import only new TMC-WC-* items, with no updates to existing records.
+    """Import new demonstration Items from the public WooCommerce Store API."""
+    _ensure_demo_site()
+    products = _get_products(max_items)  # network preflight before any writes
+    return _import_products(products, include_images=include_images, source="Store API")
 
-    IMPORTANT: run only after reviewing preview and confirming product-image
-    reuse rights with the client. Requires permission to import this catalogue.
-    Network errors or blocked Store API are returned as explicit exceptions.
-    """
+
+def _ensure_demo_site():
     if frappe.local.site != "mastercellar.kodetrek.com":
         frappe.throw("Import is restricted to the designated Master Cellar demo site.")
 
-    products = _get_products(max_items)  # complete network preflight before writes
+
+def _import_products(products, include_images=True, source="Store API"):
+    _ensure_demo_site()
     _ensure_groups_and_price_list()
     unit = next((u for u in ("Nos", "Unit") if frappe.db.exists("UOM", u)), None)
     if not unit:
@@ -266,7 +289,7 @@ def import_store_api(max_items=24, include_images=True):
                 "selling": 1,
                 "currency": "EUR",
                 "price_list_rate": float(price),
-                "note": "Demo reference from public WooCommerce Store API; review inclusive-VAT setup.",
+                "note": f"Demo reference from WooCommerce {source}; verify displayed VAT and selling tax template.",
             }).insert(ignore_permissions=True)
 
             counts["created"] += 1
@@ -290,3 +313,81 @@ def import_store_api(max_items=24, include_images=True):
 
     frappe.db.commit()
     return counts
+
+
+def _read_woocommerce_csv(file_name, max_items=MAX_PRODUCTS):
+    """Read an admin-exported WooCommerce product CSV from this site's private/files.
+
+    Only a simple basename is accepted. This is useful when the public Store API
+    is disabled. No customer or transaction exports are imported.
+    """
+    if not re.fullmatch(r"[A-Za-z0-9._-]+\\.csv", file_name or ""):
+        raise ValueError("Supply a CSV basename such as woo-products.csv, not a path")
+    path = Path(frappe.get_site_path("private", "files", file_name))
+    if not path.is_file():
+        raise FileNotFoundError(f"Upload the WooCommerce product export to {path}")
+    if path.stat().st_size > 10 * 1024 * 1024:
+        raise ValueError("WooCommerce product CSV is larger than 10 MB")
+    products = []
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = csv.DictReader(handle)
+        for row in rows:
+            if len(products) >= min(max(int(max_items), 1), MAX_PRODUCTS):
+                break
+            if str(row.get("Type", "")).strip().lower() != "simple":
+                continue
+            if str(row.get("Published", "1")).strip() not in ("1", "yes", "true"):
+                continue
+            if str(row.get("Visibility in catalog", "visible")).strip().lower() == "hidden":
+                continue
+            try:
+                product_id = int(row["ID"])
+                raw = (row.get("Sale price") or row.get("Regular price") or "").strip()
+                amount = Decimal(raw)
+                if amount < 0:
+                    continue
+                minor = int(amount * 100)
+            except (ValueError, TypeError, KeyError, InvalidOperation):
+                continue
+            categories = [
+                {"name": x.strip().split(">")[-1].strip()}
+                for x in (row.get("Categories") or "").split(",")
+                if x.strip()
+            ]
+            images = [
+                {"src": x.strip()}
+                for x in (row.get("Images") or "").split(",")
+                if x.strip()
+            ]
+            products.append({
+                "id": product_id,
+                "type": "simple",
+                "name": row.get("Name", ""),
+                "description": row.get("Description", "") or row.get("Short description", ""),
+                "categories": categories,
+                "prices": {
+                    "price": str(minor), "currency_minor_unit": 2, "currency_code": "EUR"
+                },
+                "images": images,
+            })
+    return products
+
+
+def preview_csv(file_name="woo-products.csv", max_items=24):
+    """Preview a WooCommerce administrator CSV export with no database writes."""
+    products = _read_woocommerce_csv(file_name, max_items=max_items)
+    return {
+        "source": "private WooCommerce product CSV",
+        "file_name": file_name,
+        "fetched": len(products),
+        "with_source_image": sum(bool(_image_url(p)) for p in products),
+        "sample": [_summary(p) for p in products[:12]],
+        "mutated": False,
+    }
+
+
+def import_csv(file_name="woo-products.csv", max_items=24, include_images=True):
+    """Explicit, opt-in import of a WooCommerce product CSV, with source images."""
+    _ensure_demo_site()
+    products = _read_woocommerce_csv(file_name, max_items=max_items)
+    return _import_products(products, include_images=include_images, source="CSV export")
