@@ -63,6 +63,7 @@ def _decorate(items):
                 "item_code": item.item_code,
                 "item_name": item.item_name,
                 "item_group": item.item_group,
+                "description": item.description or "",
                 "image": item.image or "",
                 "product_url": "/mastercellar/product?item=" + quote(item.item_code, safe=""),
                 "price_text": (
@@ -74,7 +75,7 @@ def _decorate(items):
     return result
 
 
-def get_demo_products(category=None, limit=MAX_ITEMS):
+def get_demo_products(category=None, limit=MAX_ITEMS, search=None):
     """Show only the manually designated TMC-* demonstration stock."""
     rows = frappe.get_all(
         "Item",
@@ -83,12 +84,15 @@ def get_demo_products(category=None, limit=MAX_ITEMS):
             "disabled": 0,
             "is_sales_item": 1,
         },
-        fields=["item_code", "item_name", "item_group", "image"],
+        fields=["item_code", "item_name", "item_group", "image", "description"],
         order_by="item_name asc",
         limit_page_length=min(max(int(limit), 1), MAX_ITEMS),
     )
     if category in CATEGORIES:
         rows = [row for row in rows if row.item_group in CATEGORIES[category]]
+    if search:
+        phrase = str(search).strip().casefold()[:65]
+        rows = [r for r in rows if phrase in (r.item_name or "").casefold()]
     return _decorate(rows)
 
 

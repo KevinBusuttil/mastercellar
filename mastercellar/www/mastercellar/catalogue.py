@@ -13,4 +13,6 @@ def get_context(context):
     context.no_cache = True
     context.category = category
     context.categories = list(CATEGORIES)
-    context.products = get_demo_products(category=category)
+    search = (frappe.form_dict.get("q") or "").strip()[:65]
+    context.search = search
+    context.products = get_demo_products(category=category, limit=80, search=search)

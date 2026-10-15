@@ -9,6 +9,12 @@
   <header class="mc-nav"><a href="/mastercellar" class="mc-brand"><span class="mc-brand-mark">MC</span><span>THE MASTER CELLAR<small>FINE WINES &amp; SPIRITS · MALTA</small></span></a><nav><a href="/mastercellar">Home</a><a href="/mastercellar/catalogue">The collection</a></nav></header>
   <section class="mc-inner-hero"><p class="mc-kicker">THE MASTER CELLAR</p><h1>{{ category or 'Explore the collection' }}</h1><p>A curated selection of wines, spirits and gifts sourced from ERPNext demo Item records.</p></section>
   <main class="mc-section mc-catalogue">
+    <form class="mc-search" method="get" action="/mastercellar/catalogue">
+      {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+      <input type="search" name="q" value="{{ search }}" placeholder="Search our wines, spirits and gifts…" aria-label="Search products" maxlength="65">
+      <button type="submit">Search</button>
+    </form>
+    <p class="mc-results-note">{{ products | length }} demo products found{% if search %} for “{{ search }}”{% endif %} · Prices are reference values</p>
     <nav class="mc-filter-bar" aria-label="Product categories">
       <a class="{{ 'mc-active' if not category else '' }}" href="/mastercellar/catalogue">All</a>
       {% for name in categories %}<a class="{{ 'mc-active' if category == name else '' }}" href="/mastercellar/catalogue?category={{ name | urlencode }}">{{ name }}</a>{% endfor %}
