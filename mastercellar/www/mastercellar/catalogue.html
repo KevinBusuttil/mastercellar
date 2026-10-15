@@ -1,0 +1,28 @@
+{% extends "templates/web.html" %}
+{% block page_content %}
+<link rel="stylesheet" href="/assets/mastercellar/css/storefront.css">
+<div class="mc-root">
+  <div class="mc-alert">ERPNext-powered catalogue demo · No checkout available</div>
+  <header class="mc-nav"><a href="/mastercellar" class="mc-brand"><span class="mc-brand-mark">MC</span><span>THE MASTER CELLAR<small>FINE WINES &amp; SPIRITS · MALTA</small></span></a><nav><a href="/mastercellar">Home</a><a href="/mastercellar/catalogue">The collection</a></nav></header>
+  <section class="mc-inner-hero"><p class="mc-kicker">THE MASTER CELLAR</p><h1>{{ category or 'Explore the collection' }}</h1><p>A curated selection of wines, spirits and gifts sourced from ERPNext demo Item records.</p></section>
+  <main class="mc-section mc-catalogue">
+    <nav class="mc-filter-bar" aria-label="Product categories">
+      <a class="{{ 'mc-active' if not category else '' }}" href="/mastercellar/catalogue">All</a>
+      {% for name in categories %}<a class="{{ 'mc-active' if category == name else '' }}" href="/mastercellar/catalogue?category={{ name | urlencode }}">{{ name }}</a>{% endfor %}
+    </nav>
+    {% if products %}
+    <div class="mc-product-grid">
+      {% for item in products %}
+      <a class="mc-product-card" href="{{ item.product_url }}">
+        <div class="mc-product-media">{% if item.image %}<img loading="lazy" src="{{ item.image }}" alt="{{ item.item_name }}">{% else %}<span class="mc-product-placeholder">THE MASTER<br>CELLAR</span>{% endif %}</div>
+        <div class="mc-product-meta"><small>{{ item.item_group }}</small><h3>{{ item.item_name }}</h3><strong>{{ item.price_text or 'Price on request' }}</strong></div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="mc-empty">No demonstration products found in this category. Seed demo data or update ERPNext Items assigned to it.</p>
+    {% endif %}
+  </main>
+  <footer class="mc-footer"><span>THE MASTER CELLAR · MALTA</span><span>Demonstration catalogue · Prices indicative · No checkout</span></footer>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "templates/web.html" %}
+{% block page_content %}
+<link rel="stylesheet" href="/assets/mastercellar/css/storefront.css">
+<div class="mc-root">
+  <div class="mc-alert">ERPNext-powered storefront concept · Online checkout not yet enabled</div>
+  <header class="mc-nav">
+    <a href="/mastercellar" class="mc-brand"><span class="mc-brand-mark">MC</span><span>THE MASTER CELLAR<small>FINE WINES &amp; SPIRITS · MALTA</small></span></a>
+    <nav aria-label="Master Cellar collections">
+      <a href="/mastercellar/catalogue?category=Wines">Wines</a>
+      <a href="/mastercellar/catalogue?category=Spirits">Spirits</a>
+      <a href="/mastercellar/catalogue?category=Gift%20Hampers">Gifting</a>
+      <a href="/mastercellar/catalogue">Shop all</a>
+    </nav>
+  </header>
+
+  <section class="mc-hero">
+    <div class="mc-hero-copy">
+      <p class="mc-kicker">A DISCOVERY WORTH SAVOURING</p>
+      <h1>A world of exceptional taste.</h1>
+      <p>Fine wines, remarkable spirits, and thoughtfully selected gifts. A modern way to explore The Master Cellar's collection.</p>
+      <a class="mc-button" href="/mastercellar/catalogue">Explore the collection <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="mc-hero-art" aria-hidden="true"><div class="mc-glow"></div><div class="mc-bottle"><div class="mc-bottle-neck"></div><div class="mc-bottle-body"><span>THE<br>MASTER<br>CELLAR</span></div></div><div class="mc-circle-label">CURATED<br>IN MALTA</div></div>
+  </section>
+
+  <section class="mc-section">
+    <div class="mc-section-heading"><p class="mc-kicker">DISCOVER THE CELLAR</p><h2>Something for every occasion</h2><p>Explore classic favourites, new discoveries and gifting inspiration.</p></div>
+    <div class="mc-category-grid">
+      <a class="mc-category-card mc-wine" href="/mastercellar/catalogue?category=Wines"><span class="mc-category-number">01</span><span><strong>Fine wines</strong><small>From Malta and beyond ↗</small></span></a>
+      <a class="mc-category-card mc-spirit" href="/mastercellar/catalogue?category=Spirits"><span class="mc-category-number">02</span><span><strong>Premium spirits</strong><small>Distinctive bottles ↗</small></span></a>
+      <a class="mc-category-card mc-gift" href="/mastercellar/catalogue?category=Gift%20Hampers"><span class="mc-category-number">03</span><span><strong>Gift hampers</strong><small>Thoughtfully curated ↗</small></span></a>
+    </div>
+  </section>
+
+  <section class="mc-section mc-products-section">
+    <div class="mc-section-heading"><p class="mc-kicker">FROM OUR COLLECTION</p><h2>Discover a favourite</h2><p>Items and indicative prices loaded directly from the demonstration ERPNext Item master.</p></div>
+    {% if featured %}
+    <div class="mc-product-grid">
+      {% for item in featured %}
+      <a class="mc-product-card" href="{{ item.product_url }}">
+        <div class="mc-product-media">
+          {% if item.image %}<img loading="lazy" src="{{ item.image }}" alt="{{ item.item_name }}">{% else %}<span class="mc-product-placeholder">THE MASTER<br>CELLAR</span>{% endif %}
+        </div>
+        <div class="mc-product-meta"><small>{{ item.item_group }}</small><h3>{{ item.item_name }}</h3><strong>{{ item.price_text or 'Price on request' }}</strong></div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="mc-empty">The catalogue is not populated yet. Run the optional demo seeder after installing the app.</p>
+    {% endif %}
+    <div class="mc-center"><a class="mc-outline-button" href="/mastercellar/catalogue">View all products →</a></div>
+  </section>
+
+  <section class="mc-gift-banner"><p class="mc-kicker">GIFTING, REIMAGINED</p><h2>Give something personal.</h2><p>A guided build-your-own-hamper experience is proposed for the next development phase, connected to ERPNext items and fulfilment.</p><a class="mc-button" href="/mastercellar/catalogue?category=Gift%20Hampers">See gift hampers →</a></section>
+  <footer class="mc-footer"><span>THE MASTER CELLAR · MALTA</span><span>Demonstration concept · Alcohol sales and delivery require age/ID compliance checks · No checkout or online payment</span></footer>
+</div>
+{% endblock %}
