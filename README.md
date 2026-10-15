@@ -83,3 +83,100 @@ It is deliberately **not** an authoritative commercial pricing engine. Before go
 5. Corporate orders, curated hamper builder, events, membership and SEO migration.
 
 All data and pricing in the seeder are **illustrative demonstration data**; they must be verified before any production use.
+
+
+## Import real WooCommerce products and images for the client demonstration
+
+**Do not import into production.** This process only targets the isolated
+`mastercellar.kodetrek.com` site. The public product feed (if enabled) is
+not a substitute for an authenticated migration covering customer accounts,
+orders, stock, tax rules, coupon rules, variants and transaction history.
+
+**Before downloading source photos, obtain permission from the client to reuse
+their existing product photographs and branding on the demo.** Keep the demo
+behind an access restriction or disable search indexing, and remove stale
+data after the meeting.
+
+### Option A — Public WooCommerce Store API (preferred for fast demo)
+
+Before changing the database, SSH into the server and test:
+
+```bash
+cd ~/frappe-bench
+curl -sSI --max-time 15 'https://www.themastercellar.com/wp-json/wc/store/v1/products?per_page=1'
+bench --site mastercellar.kodetrek.com execute \
+  mastercellar.woo_import.preview_store_api \
+  --kwargs '{"max_items":12}'
+```
+
+The preview returns how many products and images the remote endpoint exposes
+and a short sample, **without updating ERPNext**. If HTTP 403, 404 or HTML
+appears, use Option B. Do not bypass access restrictions.
+
+After reviewing the preview and taking an ERPNext site backup:
+
+```bash
+bench --site mastercellar.kodetrek.com backup --with-files
+bench --site mastercellar.kodetrek.com execute \
+  mastercellar.woo_import.import_store_api \
+  --kwargs '{"max_items":36,"include_images":true}'
+```
+
+If your Bench CLI requires native Python-style booleans in JSON kwargs, use
+`true` for JSON, not `True`. The import is opt-in, uses a fixed source
+hostname, limits redirects and image sizes, and only creates new `TMC-WC-*`
+items. It never overwrites existing ERPNext items or selling prices.
+
+### Option B — WooCommerce product CSV export (when API blocked)
+
+In **WordPress Admin → Products → All Products → Export**, export the published
+simple products. This is the official WooCommerce product export route.
+Transfer it to your *new Frappe site*, e.g.:
+
+```bash
+sites/mastercellar.kodetrek.com/private/files/woo-products.csv
+```
+
+Only the basename `woo-products.csv` is accepted by the importer; do not pass
+absolute paths. This export may include links to product images; they are
+downloaded only from the approved `themastercellar.com` host.
+
+Preview first:
+
+```bash
+bench --site mastercellar.kodetrek.com execute \
+  mastercellar.woo_import.preview_csv \
+  --kwargs '{"file_name":"woo-products.csv","max_items":12}'
+```
+
+Then, only after reviewing the result:
+
+```bash
+bench --site mastercellar.kodetrek.com execute \
+  mastercellar.woo_import.import_csv \
+  --kwargs '{"file_name":"woo-products.csv","max_items":36,"include_images":true}'
+```
+
+Do not export/import actual customer or transaction data for the demo.
+
+### Post-import checks
+
+```bash
+bench --site mastercellar.kodetrek.com clear-website-cache
+bench --site mastercellar.kodetrek.com execute \
+  mastercellar.catalog.get_demo_products
+```
+
+Browse `/mastercellar/catalogue` and verify product images resolve at local
+`/files/...` URLs, product pages open and selected prices agree with the
+original storefront.
+
+Imported `Item Price` values are **reference/display values only**.
+They are not evidence of correct ERPNext VAT treatment; Woo CSV and Store API
+may have different tax display semantics. Do not enable real orders/payments
+based on this import without tax and commercial-pricing reconciliation.
+
+**Limitations:** Currently supports WooCommerce **simple products** only.
+Variable products, subscriptions, gift-card balances, event registrations,
+real inventory/warehouses and customer-specific prices require dedicated
+integration. Existing `TMC-*` seeded demo products remain unchanged.
